@@ -8,7 +8,7 @@
 import SwiftUI
 
 class PlayArea {
-	init(objects: [CGPoint : GridObject], snake: TheSnake, size: CGSize, setup: ((PlayArea) -> Void)? = nil) {
+	init(objects: [CGPoint : any GridObjectType], snake: TheSnake, size: CGSize, setup: ((PlayArea) -> Void)? = nil) {
 		self.objects = objects
 		self.snake = snake
 		self.size = size
@@ -17,19 +17,19 @@ class PlayArea {
 		
 		//Outside wall
 		(0..<Int(size.width)).forEach { x in
-			pushObject(CGPoint(x: x, y: 0), object: .wall)
-			pushObject(CGPoint(x: x, y: Int(size.height - 1)), object: .wall)
+			pushObject(CGPoint(x: x, y: 0), object: GridObjectWall())
+			pushObject(CGPoint(x: x, y: Int(size.height - 1)), object: GridObjectWall())
 		}
 		(0..<Int(size.height)).forEach { y in
 			
-			pushObject(CGPoint(x: 0, y: y), object: .wall)
-			pushObject(CGPoint(x: Int(size.width - 1), y: y), object: .wall)
+			pushObject(CGPoint(x: 0, y: y), object: GridObjectWall())
+			pushObject(CGPoint(x: Int(size.width - 1), y: y), object: GridObjectWall())
 		}
 		
 		setup?(self)
 		setupNodes()
 	}
-	var objects: [CGPoint:GridObject] = [:]
+	var objects: [CGPoint:any GridObjectType] = [:]
 	var snake: TheSnake
 	var size: CGSize
 	private var width: Int { Int(size.width) }
@@ -108,7 +108,7 @@ class PlayArea {
 		return endNode.parent != nil
 	}
 	
-	func pushObject(_ at: CGPoint, object: GridObject) {
+	func pushObject(_ at: CGPoint, object: any GridObjectType) {
 		guard !objects.keys.contains(at) else { return }
 		objects[at] = object
 	}
@@ -116,7 +116,7 @@ class PlayArea {
 	func allObjects() -> [DrawObject] {
 		var ret: [DrawObject] = []
 		objects.forEach { obj in
-			ret.append(DrawObject(systemName: obj.value.symbolName, at: obj.key, color: obj.value.color))
+			ret.append(DrawObject(systemName: obj.value.imageRef, at: obj.key, color: obj.value.color))
 		}
 		ret.append(contentsOf: snake.getDrawObjects())
 		return ret
@@ -142,31 +142,32 @@ class PlayArea {
 	func addApple() {
 		var rnd = CGPoint(x: Int.random(in: 0..<Int(size.width)), y: Int.random(in: 0..<Int(size.height)))
 		var objKeys: [CGPoint] = []
-		objKeys.append(contentsOf: objects.keys)
+		objKeys.append(contentsOf: objects.filter({$0.value is GridObjectWall}).keys)
 		var illegal: [CGPoint] = snake.points
 		illegal.append(contentsOf: objKeys)
 		while illegal.contains(rnd) || !canReach(start: snake.points.first!, end: rnd) {
 			rnd = CGPoint(x: Int.random(in: 0..<Int(size.width)), y: Int.random(in: 0..<Int(size.height)))
 		}
-		pushObject(rnd, object: .apple)
+		pushObject(rnd, object: GridObjectApple())
 	}
 	
 	func play() {
 		guard !isDead else { return }
+		objects.forEach {$0.value.evolve()}
 		if desiredRotation != .none {
 			snake.direction = desiredRotation
 			desiredRotation = .none
 		}
 		let pt = snake.move()
 		if let obj = objects[pt] {
-			if obj == .wall || snake.hasEatenSelf() {
+			if obj.edible == .mortality || snake.hasEatenSelf() {
 				isDead = true
 				return
 			}
 			snake.desiredLength += obj.extendLengthBy
 			score += obj.score
 			objects.removeValue(forKey: pt)
-			if obj == .apple {
+			if obj is GridObjectApple {
 				addApple()
 			}
 		}

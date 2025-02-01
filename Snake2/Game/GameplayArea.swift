@@ -67,17 +67,17 @@ struct GameplayArea: View {
 			//Let's do some objects
 			(0..<10).forEach { _ in
 				if let pt = try? area.findBlankSpot() {
-					area.pushObject(pt, object: .apple)
+					area.pushObject(pt, object: GridObjectApple(randomAge: true))
 				}
 			}
 			(0..<30).forEach { _ in
 				if let pt = try? area.findBlankSpot() {
-					area.pushObject(pt, object: .grass)
+					area.pushObject(pt, object: GridObjectGrass(randomAge: true))
 				}
 			}
 			(0..<10).forEach { _ in
 				if let pt = try? area.findBlankSpot() {
-					area.pushObject(pt, object: .wall)
+					area.pushObject(pt, object: GridObjectWall())
 				}
 			}
 	}
@@ -87,17 +87,17 @@ struct GameplayArea: View {
 			//Let's do some objects
 			(0..<10).forEach { _ in
 				if let pt = try? area.findBlankSpot() {
-					area.pushObject(pt, object: .apple)
+					area.pushObject(pt, object: GridObjectApple(randomAge: true))
 				}
 			}
 			(0..<30).forEach { _ in
 				if let pt = try? area.findBlankSpot() {
-					area.pushObject(pt, object: .grass)
+					area.pushObject(pt, object: GridObjectGrass(randomAge: true))
 				}
 			}
 			(0..<10).forEach { _ in
 				if let pt = try? area.findBlankSpot() {
-					area.pushObject(pt, object: .wall)
+					area.pushObject(pt, object: GridObjectWall())
 				}
 			}
 		}
@@ -109,10 +109,12 @@ struct GameplayArea: View {
 
     var body: some View {
 		VStack(alignment: .center) {
-			Text("Greedy Bastard!").font(.largeTitle)
-				.onTapGesture {
-					playArea = reset()
-				}
+			Button {
+				playArea = reset()
+			} label: {
+				Text(playArea.isDead ? "Game Over" : "Greedy Bastard!").font(.largeTitle)
+			}
+			.buttonStyle(.borderedProminent)
 			Grid(playArea: playArea)
 				.onReceive(timer) { _ in
 					playArea.play()
