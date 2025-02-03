@@ -12,7 +12,8 @@ class PlayArea {
 		self.objects = objects
 		self.snake = snake
 		self.size = size
-		
+		shortPathCalculator = ShortPathCalculation(size: size)
+
 		Metrics.shared.gridSize = size
 		
 		//Outside wall
@@ -27,7 +28,6 @@ class PlayArea {
 		}
 		
 		setup?(self)
-		setupNodes()
 	}
 	var objects: [CGPoint:any GridObjectType] = [:]
 	var snake: TheSnake
@@ -35,79 +35,8 @@ class PlayArea {
 	private var width: Int { Int(size.width) }
 	private var height: Int { Int(size.height) }
 	
-	private var nodes: [ShortPath] = []
-	
-	private func setupNodes() {
-		nodes = []
-		(0..<width).forEach { x in
-			(0..<height).forEach { y in
-				nodes.append(ShortPath(xy: CGPoint(x: x, y: y), parent: nil, globalGoal: Float.infinity, localGoal: Float.infinity, neighbours: []))
-			}
-		}
-		nodes.forEach { node in
-			let neighbours: [ShortPath?] = [
-				getNode(x: node.xy.x, y: node.xy.y - 1),
-				getNode(x: node.xy.x - 1, y: node.xy.y),
-				getNode(x: node.xy.x + 1, y: node.xy.y),
-				getNode(x: node.xy.x, y: node.xy.y + 1)
-			]
-			node.neighbours = neighbours.compactMap {$0}
-		}
-	}
-	
-	private func resetNodes() {
-		nodes.forEach { node in
-			node.globalGoal = Float.infinity
-			node.localGoal = Float.infinity
-			node.visited = false
-			node.parent = nil
-			node.obstacle = objects.keys.contains(node.xy)
-		}
-	}
-	
-	private func getNode(x: CGFloat, y: CGFloat) -> ShortPath? {
-		return nodes.first(where: {$0.xy.x == x && $0.xy.y == y})
-	}
-	
-	private func canReach(start: CGPoint, end: CGPoint) -> Bool {
-		guard let startNode = getNode(x: start.x, y: start.y), let endNode = getNode(x: end.x, y: end.y) else { return false }
-		guard start != end else { return true }
-		resetNodes()
-		
-		let distance : (ShortPath, ShortPath) -> Float = { a, b in
-			return sqrtf(Float(a.xy.x - b.xy.x) * Float(a.xy.x - b.xy.x) + Float(a.xy.y - b.xy.y) * Float(a.xy.y - b.xy.y))
-		}
-		
-		let heuristic : (ShortPath, ShortPath) -> Float = { distance($0, $1) }
-		var current = startNode
-		startNode.localGoal = 0
-		startNode.globalGoal = heuristic(startNode, endNode)
-		var listNotTested: [ShortPath] = [startNode]
-		while listNotTested.count > 0 {
-			listNotTested.sort(by: {$0.globalGoal < $1.globalGoal})
-			while listNotTested.first?.visited ?? false {
-				listNotTested.removeFirst()
-			}
-			if listNotTested.count == 0 {
-				break
-			}
-			current = listNotTested.first!
-			current.visited = true
-			current.neighbours.forEach { neighbour in
-				if !neighbour.visited && !neighbour.obstacle {
-					listNotTested.append(neighbour)
-				}
-				let lowerGoal = current.localGoal + distance(current, neighbour)
-				if lowerGoal < neighbour.localGoal {
-					neighbour.parent = current
-					neighbour.localGoal = lowerGoal
-					neighbour.globalGoal = neighbour.localGoal + heuristic(neighbour, endNode)
-				}
-			}
-		}
-		return endNode.parent != nil
-	}
-	
+	private var shortPathCalculator: ShortPathCalculation
+
 	func pushObject(_ at: CGPoint, object: any GridObjectType) {
 		guard !objects.keys.contains(at) else { return }
 		objects[at] = object
@@ -145,7 +74,7 @@ class PlayArea {
 		objKeys.append(contentsOf: objects.filter({$0.value is GridObjectWall}).keys)
 		var illegal: [CGPoint] = snake.points
 		illegal.append(contentsOf: objKeys)
-		while illegal.contains(rnd) || !canReach(start: snake.points.first!, end: rnd) {
+		while illegal.contains(rnd) || !shortPathCalculator.canReach(start: snake.points.first!, end: rnd, obstaclePoints: objects.keys.map {$0}) {
 			rnd = CGPoint(x: Int.random(in: 0..<Int(size.width)), y: Int.random(in: 0..<Int(size.height)))
 		}
 		pushObject(rnd, object: GridObjectApple())
@@ -178,7 +107,7 @@ class PlayArea {
 		}
 	}
 	
-	var desiredRotation: SnakeRotation = .none
+	var desiredRotation: SnakeDirection = .none
 	
 	func rotateLeft() {
 		switch snake.direction {

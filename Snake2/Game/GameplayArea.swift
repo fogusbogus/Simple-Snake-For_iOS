@@ -8,8 +8,7 @@
 import SwiftUI
 
 
-
-
+/// Something to draw on the UI
 struct DrawObject {
 	var systemName: String
 	var at: CGPoint
@@ -21,8 +20,13 @@ struct Grid: View {
 	@ObservedObject var ui = WindowUI()
 
 	var playArea: PlayArea
-
-	func calcRect(x: Int, y: Int, sz: CGSize? = nil) -> CGRect {
+	
+	/// Where does our image lie on the canvas?
+	/// - Parameters:
+	///   - x: x axis
+	///   - y: y axis
+	/// - Returns: a rectangle on the canvas
+	func calcImageRect(x: Int, y: Int) -> CGRect {
 		let w = Metrics.shared.blockSizeWidth, h = Metrics.shared.blockSizeHeight
 		return CGRect(x: CGFloat(x) * w, y: CGFloat(y) * h, width: w, height: h )
 	}
@@ -33,11 +37,13 @@ struct Grid: View {
 			VStack {
 				Rectangle().fill(.green)
 					.onChange(of: geo.size) { oldValue, newValue in
+						//Store it globally so we can resize appropriately
 						Metrics.shared.windowWidth = newValue.width
 						Metrics.shared.windowHeight = newValue.height
 						self.ui.toggle()
 					}
 					.onAppear {
+						//Store it globally so we can resize appropriately
 						Metrics.shared.windowWidth = geo.size.width
 						Metrics.shared.windowHeight = geo.size.height
 					}
@@ -46,9 +52,10 @@ struct Grid: View {
 		}.overlay {
 			VStack {
 				Canvas { gc, sz in
+					//Draw all the objects
 					let items = playArea.allObjects()
 					items.forEach { sd in
-						let rect = calcRect(x: Int(sd.at.x), y: Int(sd.at.y), sz: sz)
+						let rect = calcImageRect(x: Int(sd.at.x), y: Int(sd.at.y))
 						var image = gc.resolve( Image(systemName: sd.systemName))
 						image.shading = .color(sd.color)
 						
@@ -105,6 +112,7 @@ struct GameplayArea: View {
 	
 	@ObservedObject var ui = WindowUI()
 
+	// Set the speed (ms) for the parameter 'every'
 	let timer = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -129,7 +137,7 @@ struct GameplayArea: View {
 						.scaledToFit()
 						.foregroundStyle(.white)
 				}
-				.contentShape(Rectangle())
+				.contentShape(Rectangle())	//Make sure all areas of the button are clickable
 				.background(.blue)
 				Button {
 					playArea.rotateLeft()
@@ -139,13 +147,9 @@ struct GameplayArea: View {
 						.scaledToFit()
 						.foregroundStyle(.white)
 				}
-				.contentShape(Rectangle())
+				.contentShape(Rectangle())	//Make sure all areas of the button are clickable
 				.background(.blue)
 			}
-				.onTapGesture {
-					playArea.snake.move()
-					ui.toggle()
-				}
 		}
 		.scenePadding()
     }

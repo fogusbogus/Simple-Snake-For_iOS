@@ -7,7 +7,11 @@
 
 import SwiftUI
 
+/// Grass. 'Tis edible.
 class GridObjectGrass: GridObjectType {
+	
+	/// Constructor
+	/// - Parameter randomAge: We don't want all grass to be the same age initially
 	init(randomAge: Bool = false) {
 		if randomAge {
 			age = Int.random(in: 0..<oldAge)

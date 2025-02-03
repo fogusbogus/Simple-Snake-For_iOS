@@ -6,10 +6,11 @@
 //
 
 
+/// Snake body part
 enum SnakeType {
 	case tail, body, curve, head
 	
-	func symbolName(_ rotation: SnakeRotation) -> String {
+	func symbolName(_ rotation: SnakeDirection) -> String {
 		if self == .head {
 			switch rotation {
 				case .north:

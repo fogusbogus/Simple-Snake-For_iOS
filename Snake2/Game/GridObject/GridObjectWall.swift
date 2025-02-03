@@ -8,6 +8,7 @@
 import SwiftUI
 
 
+/// A wall object. Terminal.
 class GridObjectWall: GridObjectType {
 	var imageRef: String = "square.grid.3x3.square"
 	

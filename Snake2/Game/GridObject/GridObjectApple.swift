@@ -7,8 +7,11 @@
 
 import SwiftUI
 
+/// The edible apple
 class GridObjectApple: GridObjectType {
 	
+	/// Constructor
+	/// - Parameter randomAge: We don't want all initial apples to be the same age
 	init(randomAge: Bool = false) {
 		if randomAge {
 			age = Int.random(in: 0...oldAge)
