@@ -15,7 +15,21 @@ struct DrawObject {
 	var color: Color
 }
 
+extension CGRect {
+	func path() -> Path {
+		var ret = Path()
+		ret.addRect(self)
+		return ret
+	}
+}
+
 struct Grid: View {
+	init(playArea: PlayArea) {
+		self.playArea = playArea
+		let w = (Metrics.shared.windowWidth - Metrics.shared.idealWindowWidth) / 2
+		let h = (Metrics.shared.windowHeight - Metrics.shared.idealWindowHeight - Metrics.shared.blockSizeHeight) / 2
+		self.offset = CGPoint(x: w, y: h)
+	}
 	
 	@ObservedObject var ui = WindowUI()
 
@@ -27,15 +41,23 @@ struct Grid: View {
 	///   - y: y axis
 	/// - Returns: a rectangle on the canvas
 	func calcImageRect(x: Int, y: Int) -> CGRect {
-		let w = Metrics.shared.blockSizeWidth, h = Metrics.shared.blockSizeHeight
-		return CGRect(x: CGFloat(x) * w, y: CGFloat(y) * h, width: w, height: h )
+		let bs = Metrics.shared.idealBlockSize
+		return CGRect(x: CGFloat(x) * bs, y: CGFloat(y) * bs, width: bs, height: bs).offsetBy(dx: offset?.x ?? 0, dy: offset?.y ?? 0)
 	}
+	
+	mutating func findOffset() {
+		if offset == nil {
+			offset = CGPoint(x: 50, y: 50)
+		}
+	}
+	
+	var offset: CGPoint?
 	
 	var body: some View {
 		
 		GeometryReader { geo in
 			VStack {
-				Rectangle().fill(.green)
+				Rectangle().fill(.white)
 					.onChange(of: geo.size) { oldValue, newValue in
 						//Store it globally so we can resize appropriately
 						Metrics.shared.windowWidth = newValue.width
@@ -52,6 +74,7 @@ struct Grid: View {
 		}.overlay {
 			VStack {
 				Canvas { gc, sz in
+					gc.fill(CGRect(x: offset?.x ?? 0, y: offset?.y ?? 0, width: Metrics.shared.idealWindowWidth, height: Metrics.shared.idealWindowHeight).path(), with: .color(.green))
 					//Draw all the objects
 					let items = playArea.allObjects()
 					items.forEach { sd in

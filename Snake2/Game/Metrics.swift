@@ -41,4 +41,16 @@ class Metrics {
 	var windowSize: CGSize {
 		return CGSize(width: windowWidth, height: windowHeight)
 	}
+	
+	var idealBlockSize: CGFloat { [blockSizeWidth, blockSizeHeight].min()!}
+	
+	var idealWindowWidth: CGFloat {
+		return CGFloat(gridWidth) * idealBlockSize
+	}
+	var idealWindowHeight: CGFloat {
+		return CGFloat(gridHeight) * idealBlockSize
+	}
+	
+	var horzPadding: CGFloat { windowWidth - idealWindowWidth }
+	var vertPadding: CGFloat { windowHeight - idealWindowHeight }
 }
